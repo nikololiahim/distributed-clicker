@@ -110,7 +110,7 @@ class View(tk.Tk):
     def on_log_in(self):
         username = self.validate_username()
         if username is not None:
-            listening_thread = threading.Thread(target=lambda: self.client.start(username), daemon=True)
+            listening_thread = threading.Thread(target=lambda: self.client.start(username))
             listening_thread.start()
             self.login.destroy()
             self.waiting_layout()
@@ -164,8 +164,7 @@ class View(tk.Tk):
             message = self.client.message_queue.get()
             print(message)
             self.players_list.update_players(message)
-            import time
-            time.sleep(1)
+
 
 
 if __name__ == "__main__":
