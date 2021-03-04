@@ -14,22 +14,24 @@ class Client:
                                     socket.SOCK_STREAM)
         self.client.connect(server)
         self.message_queue = queue.Queue()
-        self.lock = threading.Lock()
 
     def start(self, username):
         while True:
-            with self.lock:
+            try:
                 received_message = self.receive_message()
                 if isinstance(received_message, list):
                     message = username
                     self.client.send(message.encode(self.FORMAT))
                 else:
                     self.message_queue.put(received_message)
+            except:
+                # TODO: fix concurrent access to client socket
+                print("error")
+                break
 
     def disconnect(self):
-        # TODO: fix deadlock
-        with self.lock:
-            self.client.close()
+        self.client.shutdown(socket.SHUT_RDWR)
+        self.client.close()
 
     def receive_message(self):
         length = int_from_bytes(self.client.recv(1))
