@@ -10,7 +10,6 @@ class Server:
     SERVER = socket.gethostbyname(socket.gethostname())
     ADDRESS = (SERVER, PORT)
     FORMAT = "utf-8"
-    DELIMITER = "@"
 
     def __init__(self):
 
@@ -19,7 +18,10 @@ class Server:
         self.server = socket.socket(socket.AF_INET,
                                     socket.SOCK_STREAM)
 
-    def run(self):
+    def run_request_socket(self):
+        raise NotImplementedError()
+
+    def run_broadcast_socket(self):
         self.server.bind(Server.ADDRESS)
 
         print("server is working on " + Server.SERVER)
@@ -71,4 +73,4 @@ class Server:
 
 if __name__ == "__main__":
     server = Server()
-    server.run()
+    server.run_broadcast_socket()
