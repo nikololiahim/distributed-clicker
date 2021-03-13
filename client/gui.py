@@ -166,7 +166,6 @@ class View(tk.Tk):
             self.players_list.update_players(message)
 
 
-
 if __name__ == "__main__":
     client = Client()
     app = View(client)
