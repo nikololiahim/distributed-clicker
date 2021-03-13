@@ -2,6 +2,7 @@ import time
 import threading
 
 
+
 class OutOfTimeException(BaseException):
     def __init__(self):
         super(OutOfTimeException, self).__init__()
@@ -10,6 +11,7 @@ class OutOfTimeException(BaseException):
 class Timer(threading.Thread):
 
     def __init__(self, time_left):
+        self.OUT_OF_TIME = threading.Event()
         super(Timer, self).__init__()
         self.time_left = time_left
         self.current_time = 0
@@ -27,10 +29,12 @@ class Timer(threading.Thread):
                     self.current_time = time.perf_counter() - self.start
                     time.sleep(1)
             self.times_done += 1
+            self.OUT_OF_TIME.set()
 
     def reset(self):
         self.times_done = 0
         self.start = time.perf_counter()
+        self.OUT_OF_TIME.clear()
 
     def stop(self):
         self.STOPPED = True
