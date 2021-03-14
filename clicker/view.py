@@ -26,10 +26,10 @@ class Publisher:
     def __init__(self):
         self.connection = pika.BlockingConnection(self.CREDENTIALS)
         self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange='logs', exchange_type='fanout')
+        self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
     def publish(self, message):
-        self.channel.basic_publish(exchange='logs', routing_key='', body=message)
+        self.channel.basic_publish(exchange='game', routing_key='', body=message)
         print(" [x] Sent %r" % message)
 
     def close(self):
@@ -70,12 +70,12 @@ class Consumer(threading.Thread):
         self.clients = []
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
         self.channel = self.connection.channel()
-        self.channel.exchange_declare(exchange='logs', exchange_type='fanout')
+        self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.queue_name = result.method.queue
 
-        self.channel.queue_bind(exchange='logs', queue=self.queue_name)
+        self.channel.queue_bind(exchange='game', queue=self.queue_name)
         self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback, auto_ack=False)
 
     def run(self):
@@ -120,7 +120,7 @@ class MainWindow(tk.Tk):
         self.publisher = publisher
         self.timer = Timer(self.TIME)
 
-    def waiting_layout(self):
+    def game_layout(self):
         self.place_player_list()
         self.place_game_area()
         self.place_click()
@@ -226,7 +226,7 @@ class MainWindow(tk.Tk):
             }
             self.register_player()
             self.login.destroy()
-            self.waiting_layout()
+            self.game_layout()
 
     def register_player(self):
         global username
@@ -292,10 +292,11 @@ class MainWindow(tk.Tk):
         self.player_list.pack(fill=tk.BOTH)
 
     def place_whose_turn(self):
+        global username
         self.whose_turn = tk.Label(
             master=self,
             background="lightblue",
-            text="Player's turn now!"
+            text=f"You are currently: {username}"
         )
         self.whose_turn.grid(row=0, column=1, sticky=tk.NSEW)
 
