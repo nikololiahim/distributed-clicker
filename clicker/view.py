@@ -20,6 +20,8 @@ UPDATE_SCORE = "update_score"
 PLAYER_LOST = "player_lost"
 START_UPDATE_PLAYERS = "start_update_players"
 UPDATE_PLAYERS = "update_players"
+RABBITMQ_CREDENTIALS = pika.URLParameters(os.environ.get("CLOUDAMQP_URL", "amqp://guest:guest@localhost:5672/%2f"))
+
 
 class Publisher:
 
