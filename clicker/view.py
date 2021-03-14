@@ -5,6 +5,7 @@ from clicker.timer import Timer
 import threading
 import json
 import pika
+import uuid
 from datetime import datetime
 
 players = {
@@ -78,6 +79,9 @@ class Consumer(threading.Thread):
         self.channel.queue_bind(exchange='game', queue=self.queue_name)
         self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback, auto_ack=False)
 
+    def close(self):
+        self.connection.close()
+
     def run(self):
         self.channel.start_consuming()
 
@@ -107,7 +111,7 @@ class PlayerList(tk.Frame):
 
 
 class MainWindow(tk.Tk):
-    TIME = 100
+    TIME = 10
 
     def __init__(self, publisher, consumer):
         super(MainWindow, self).__init__()
@@ -218,9 +222,9 @@ class MainWindow(tk.Tk):
 
     def on_log_in(self):
         global username
-        import uuid
-        username = f"{self.validate_username()}@{str(uuid.uuid1())[:4]}"
+        username = self.validate_username()
         if username is not None:
+            username = f"{username}@{str(uuid.uuid1())[:4]}"
             players["players_dict"][username] = {
                 "score": self.score
             }
@@ -262,6 +266,8 @@ class MainWindow(tk.Tk):
 
     def on_leave(self):
         self.remove_player()
+        self.publisher.close()
+        self.consumer.close()
         self.destroy()
 
     def place_game_area(self):
@@ -304,9 +310,12 @@ class MainWindow(tk.Tk):
         import time
         while True:
             if self.timer.OUT_OF_TIME.isSet():
-                msg.showerror("You Lost")
-                self.remove_player()
-                self.destroy()
+                msg.showerror(
+                    title="You Lost",
+                    message="You have run out of time. You will now be disconnected."
+                )
+                self.on_leave()
+                time.sleep(1)
             self.progress_bar['value'] = int(self.timer.current_time)
             time.sleep(1)
 
