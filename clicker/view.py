@@ -6,6 +6,7 @@ import threading
 import json
 import pika
 import uuid
+import os
 from datetime import datetime
 
 players = {
@@ -22,10 +23,8 @@ UPDATE_PLAYERS = "update_players"
 
 class Publisher:
 
-    CREDENTIALS = pika.ConnectionParameters(host='localhost', port=5672)
-
     def __init__(self):
-        self.connection = pika.BlockingConnection(self.CREDENTIALS)
+        self.connection = pika.BlockingConnection(RABBITMQ_CREDENTIALS)
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
@@ -34,7 +33,8 @@ class Publisher:
         print(" [x] Sent %r" % message)
 
     def close(self):
-        self.connection.close()
+        if self.connection.is_open:
+            self.connection.close()
 
 
 class Consumer(threading.Thread):
@@ -59,9 +59,11 @@ class Consumer(threading.Thread):
         elif operation == START_UPDATE_PLAYERS:
             publisher.publish(DELIMITER.join([UPDATE_PLAYERS, username, json.dumps(players)]))
         elif operation == UPDATE_PLAYERS:
-            if data["last_update"] >= list(players["last_update"]):
-                players = data
-                window.player_list.update_players(players["players_dict"])
+            # if data["last_update"] >= list(players["last_update"]):
+            #     players = data
+            #     window.player_list.update_players(players["players_dict"])
+            players["players_dict"].update(data["players_dict"])
+            window.player_list.update_players(players["players_dict"])
 
         print(f"received: {body.decode('utf-8')}")
 
@@ -69,7 +71,7 @@ class Consumer(threading.Thread):
         super().__init__()
         self.daemon = True
         self.clients = []
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+        self.connection = pika.BlockingConnection(RABBITMQ_CREDENTIALS)
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
@@ -111,7 +113,7 @@ class PlayerList(tk.Frame):
 
 
 class MainWindow(tk.Tk):
-    TIME = 10
+    TIME = 100
 
     def __init__(self, publisher, consumer):
         super(MainWindow, self).__init__()
