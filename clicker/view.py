@@ -3,13 +3,21 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as msg
 from clicker.timer import Timer
 import threading
+import json
 import pika
+from datetime import datetime
 
-players = dict()
+players = {
+    "last_update": datetime.utcnow().utctimetuple(),
+    "players_dict": {},
+}
+username = None
+DELIMITER = "!"
 NEW_PLAYER = "new_player"
 UPDATE_SCORE = "update_score"
 PLAYER_LOST = "player_lost"
-
+START_UPDATE_PLAYERS = "start_update_players"
+UPDATE_PLAYERS = "update_players"
 
 class Publisher:
 
@@ -30,20 +38,30 @@ class Publisher:
 
 class Consumer(threading.Thread):
 
-    def on_message(self):
-        pass
-
     def callback(self, ch, method, properties, body: bytes):
-        operation, username, score = body.decode("utf-8").split(":")
+        global players
+        global username
+        operation, name, data = body.decode("utf-8").split(DELIMITER)
+        data = json.loads(data)
+        players["last_update"] = datetime.utcnow().utctimetuple()
         if operation == NEW_PLAYER:
-            players[username] = {
-                "score": score
-            }
+            players["players_dict"][name] = data
+            publisher.publish(DELIMITER.join([START_UPDATE_PLAYERS, username, "{}"]))
         elif operation == UPDATE_SCORE:
-            players[username]["score"] = score
+            players["players_dict"][name]["score"] = data["score"]
+            window.player_list.update_players(players["players_dict"])
+
         elif operation == PLAYER_LOST:
-            players.pop(username)
-        window.player_list.update_players(players)
+            players["players_dict"].pop(name)
+            window.player_list.update_players(players["players_dict"])
+
+        elif operation == START_UPDATE_PLAYERS:
+            publisher.publish(DELIMITER.join([UPDATE_PLAYERS, username, json.dumps(players)]))
+        elif operation == UPDATE_PLAYERS:
+            if data["last_update"] >= list(players["last_update"]):
+                players = data
+                window.player_list.update_players(players["players_dict"])
+
         print(f"received: {body.decode('utf-8')}")
 
     def __init__(self):
@@ -89,18 +107,17 @@ class PlayerList(tk.Frame):
 
 
 class MainWindow(tk.Tk):
-    TIME = 3
+    TIME = 100
 
-    def __init__(self):
+    def __init__(self, publisher, consumer):
         super(MainWindow, self).__init__()
         self.resizable(True, True)
         self.withdraw()
         self.login_layout()
         self.score = 0
-        self.username = "None"
         self.protocol("WM_DELETE_WINDOW", self.on_leave)
-        self.consumer = Consumer()
-        self.publisher = Publisher()
+        self.consumer = consumer
+        self.publisher = publisher
         self.timer = Timer(self.TIME)
 
     def waiting_layout(self):
@@ -174,35 +191,37 @@ class MainWindow(tk.Tk):
 
     def validate_username(self):
         if hasattr(self, "username_field"):
-            username = self.username_field.get()
+            name = self.username_field.get()
             self.username_field.delete(0, tk.END)
-            if not username.isalnum():
+            if not name.isalnum():
                 msg.showerror(
                     title="Invalid Username!",
                     message="Username should contain only numbers and/or Latin letters!\n"
                 )
                 return
-            if not 4 <= len(username) <= 12:
+            if not 4 <= len(name) <= 12:
                 msg.showerror(
                     title="Invalid Username!",
                     message="Username should be between 4 and 12 characters long!\n"
                 )
                 return
-            if username in players.keys():
+            if name in players["players_dict"].keys():
                 msg.showerror(
                     title="Invalid Username!",
                     message="This username is already taken, choose another!"
                 )
                 return
-            return username
+            return name
 
         else:
             raise RuntimeError("Login is no longer available")
 
     def on_log_in(self):
-        self.username = self.validate_username()
-        if self.username is not None:
-            players[self.username] = {
+        global username
+        import uuid
+        username = f"{self.validate_username()}@{str(uuid.uuid1())[:4]}"
+        if username is not None:
+            players["players_dict"][username] = {
                 "score": self.score
             }
             self.register_player()
@@ -210,17 +229,39 @@ class MainWindow(tk.Tk):
             self.waiting_layout()
 
     def register_player(self):
-        self.publisher.publish(f"{NEW_PLAYER}:{self.username}:{self.score}")
+        global username
+        global players
+        players["last_update"] = datetime.utcnow().utctimetuple()
+        data = {
+            "score": self.score,
+        }
+        self.publisher.publish(DELIMITER.join([NEW_PLAYER, username, json.dumps(data)]))
 
     def update_score(self):
+        global username
+        global players
+
+        players["last_update"] = datetime.utcnow().utctimetuple()
+
         self.score += 1
-        self.publisher.publish(f"{UPDATE_SCORE}:{self.username}:{self.score}")
+        data = {
+            "score": self.score,
+        }
+        self.publisher.publish(DELIMITER.join([UPDATE_SCORE, username, json.dumps(data)]))
 
     def remove_player(self):
-        self.publisher.publish(f"{PLAYER_LOST}:{self.username}:{self.score}")
-        players.pop(self.username)
+        global username
+        global players
+        players["last_update"] = datetime.utcnow().utctimetuple()
+
+        self.score = 0
+        data = {
+            "score": self.score,
+        }
+        self.publisher.publish(DELIMITER.join([PLAYER_LOST, username, json.dumps(data)]))
 
     def on_leave(self):
+        self.remove_player()
         self.destroy()
 
     def place_game_area(self):
@@ -264,8 +305,7 @@ class MainWindow(tk.Tk):
             if self.timer.OUT_OF_TIME.isSet():
                 msg.showerror("You Lost")
                 self.remove_player()
-                import os
-                os._exit(0)
+                self.destroy()
             self.progress_bar['value'] = int(self.timer.current_time)
             time.sleep(1)
 
@@ -300,5 +340,7 @@ class MainWindow(tk.Tk):
         self.update_score()
 
 
-window = MainWindow()
+publisher = Publisher()
+consumer = Consumer()
+window = MainWindow(publisher=publisher, consumer=consumer)
 window.mainloop()
