@@ -251,7 +251,7 @@ class MainWindow(tk.Tk):
 
         players["last_update"] = datetime.utcnow().utctimetuple()
 
-        self.score += 1
+        self.score += int(self.timer.current_time)
         data = {
             "score": self.score,
         }
@@ -350,8 +350,8 @@ class MainWindow(tk.Tk):
         self.click.pack(fill=tk.BOTH)
 
     def on_click(self):
-        self.timer.reset()
         self.update_score()
+        self.timer.reset()
 
 
 publisher = Publisher()
