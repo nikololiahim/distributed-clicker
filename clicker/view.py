@@ -20,7 +20,7 @@ UPDATE_SCORE = "update_score"
 PLAYER_LOST = "player_lost"
 START_UPDATE_PLAYERS = "start_update_players"
 UPDATE_PLAYERS = "update_players"
-RABBITMQ_CREDENTIALS = pika.URLParameters(os.environ.get("CLOUDAMQP_URL", "amqp://guest:guest@localhost:5672/%2f"))
+RABBITMQ_CREDENTIALS = pika.URLParameters(os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/%2f"))
 print(RABBITMQ_CREDENTIALS)
 
 class Publisher:
@@ -49,7 +49,8 @@ class Consumer(threading.Thread):
         players["last_update"] = datetime.utcnow().utctimetuple()
         if operation == NEW_PLAYER:
             players["players_dict"][name] = data
-            publisher.publish(DELIMITER.join([START_UPDATE_PLAYERS, username, "{}"]))
+            publisher.publish(DELIMITER.join([UPDATE_PLAYERS, username, json.dumps(players)]))
+
         elif operation == UPDATE_SCORE:
             players["players_dict"][name]["score"] = data["score"]
             window.player_list.update_players(players["players_dict"])
@@ -58,8 +59,6 @@ class Consumer(threading.Thread):
             players["players_dict"].pop(name)
             window.player_list.update_players(players["players_dict"])
 
-        elif operation == START_UPDATE_PLAYERS:
-            publisher.publish(DELIMITER.join([UPDATE_PLAYERS, username, json.dumps(players)]))
         elif operation == UPDATE_PLAYERS:
             # if data["last_update"] >= list(players["last_update"]):
             #     players = data
@@ -347,7 +346,7 @@ class MainWindow(tk.Tk):
             text="CLICK!",
             command=self.on_click
         )
-        self.click.pack(fill=tk.BOTH)
+        self.click.pack(fill=tk.BOTH, expand=True)
 
     def on_click(self):
         self.update_score()
