@@ -83,7 +83,10 @@ class Consumer(threading.Thread):
         self.connection.close()
 
     def run(self):
-        self.channel.start_consuming()
+        try:
+            self.channel.start_consuming()
+        except:
+            window.on_leave()
 
 
 class PlayerList(tk.Frame):
