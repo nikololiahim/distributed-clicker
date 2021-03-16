@@ -19,7 +19,7 @@ NEW_PLAYER = "new_player"
 UPDATE_SCORE = "update_score"
 PLAYER_LOST = "player_lost"
 UPDATE_PLAYERS = "update_players"
-RABBITMQ_CREDENTIALS = pika.URLParameters(os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/%2f"))
+RABBITMQ_CREDENTIALS = pika.URLParameters("amqp://admin:password@3.15.112.17:5672/")
 print(RABBITMQ_CREDENTIALS)
 
 
