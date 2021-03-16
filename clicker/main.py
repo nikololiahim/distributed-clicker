@@ -262,13 +262,17 @@ class MainWindow(tk.Tk):
         data = {
             "score": self.score,
         }
+
         self.publisher.publish(DELIMITER.join([PLAYER_LOST, username, json.dumps(data)]))
 
     def on_leave(self):
-        self.remove_player()
-        self.publisher.close()
-        self.consumer.close()
-        self.destroy()
+        try:
+            self.remove_player()
+            self.publisher.close()
+            self.consumer.close()
+            self.destroy()
+        except:
+            self.destroy()
 
     def place_game_area(self):
         self.game_area = tk.Frame(
