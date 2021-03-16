@@ -349,11 +349,11 @@ class MainWindow(tk.Tk):
         self.update_score()
         self.timer.reset()
 
-
-publisher = Publisher()
-consumer = Consumer()
-window = MainWindow(publisher=publisher, consumer=consumer)
-try:
-    window.mainloop()
-except:
-    window.on_leave()
+if __name__ == "__main__":
+    publisher = Publisher()
+    consumer = Consumer()
+    window = MainWindow(publisher=publisher, consumer=consumer)
+    try:
+        window.mainloop()
+    except:
+        window.on_leave()
