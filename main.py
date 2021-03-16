@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox as msg
@@ -22,6 +23,19 @@ RABBITMQ_CREDENTIALS = pika.URLParameters("amqp://admin:password@3.15.112.17:567
 print(RABBITMQ_CREDENTIALS)
 
 
+def handled(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except:
+            try:
+                window.on_leave()
+            except:
+                os._exit(0)
+
+    return wrapper
+
+
 class Publisher:
 
     def __init__(self):
@@ -29,10 +43,12 @@ class Publisher:
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
+    @handled
     def publish(self, message):
         self.channel.basic_publish(exchange='game', routing_key='', body=message)
         print(" [x] Sent %r" % message)
 
+    @handled
     def close(self):
         if self.connection.is_open:
             self.connection.close()
@@ -78,14 +94,14 @@ class Consumer(threading.Thread):
         self.channel.queue_bind(exchange='game', queue=self.queue_name)
         self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback, auto_ack=False)
 
+    @handled
     def close(self):
-        self.connection.close()
+        if self.connection.is_open:
+            self.connection.close()
 
+    @handled
     def run(self):
-        try:
-            self.channel.start_consuming()
-        except:
-            window.on_leave()
+        self.channel.start_consuming()
 
 
 class PlayerList(tk.Frame):
@@ -234,6 +250,7 @@ class MainWindow(tk.Tk):
             self.login.destroy()
             self.game_layout()
 
+    @handled
     def register_player(self):
         global username
         global players
@@ -243,6 +260,7 @@ class MainWindow(tk.Tk):
         }
         self.publisher.publish(DELIMITER.join([NEW_PLAYER, username, json.dumps(data)]))
 
+    @handled
     def update_score(self):
         global username
         global players
@@ -255,6 +273,7 @@ class MainWindow(tk.Tk):
         }
         self.publisher.publish(DELIMITER.join([UPDATE_SCORE, username, json.dumps(data)]))
 
+    @handled
     def remove_player(self):
         global username
         global players
@@ -274,7 +293,7 @@ class MainWindow(tk.Tk):
             self.consumer.close()
             self.destroy()
         except:
-            self.destroy()
+            os._exit(0)
 
     def place_game_area(self):
         self.game_area = tk.Frame(
@@ -355,12 +374,13 @@ class MainWindow(tk.Tk):
         self.update_score()
         self.timer.reset()
 
+    @handled
+    def mainloop(self, n=0):
+        super(MainWindow, self).mainloop(n)
+
 
 if __name__ == "__main__":
     publisher = Publisher()
     consumer = Consumer()
     window = MainWindow(publisher=publisher, consumer=consumer)
-    try:
-        window.mainloop()
-    except:
-        window.on_leave()
+    window.mainloop()
