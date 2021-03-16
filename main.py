@@ -1,12 +1,11 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox as msg
-from clicker.timer import Timer
+from timer import Timer
 import threading
 import json
 import pika
 import uuid
-import os
 from datetime import datetime
 
 players = {
