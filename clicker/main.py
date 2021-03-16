@@ -353,4 +353,7 @@ class MainWindow(tk.Tk):
 publisher = Publisher()
 consumer = Consumer()
 window = MainWindow(publisher=publisher, consumer=consumer)
-window.mainloop()
+try:
+    window.mainloop()
+except:
+    window.on_leave()
