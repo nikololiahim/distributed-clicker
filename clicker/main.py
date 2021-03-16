@@ -349,6 +349,7 @@ class MainWindow(tk.Tk):
         self.update_score()
         self.timer.reset()
 
+
 if __name__ == "__main__":
     publisher = Publisher()
     consumer = Consumer()
