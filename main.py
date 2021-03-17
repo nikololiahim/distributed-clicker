@@ -372,7 +372,12 @@ class MainWindow(tk.Tk):
         self.timer.reset()
 
     def mainloop(self, n=0):
-        super(MainWindow, self).mainloop(n)
+        try:
+            super(MainWindow, self).mainloop(n)
+        except KeyboardInterrupt:
+            self.on_leave()
+            os._exit(0)
+
 
 
 if __name__ == "__main__":
