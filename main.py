@@ -151,7 +151,6 @@ class MainWindow(tk.Tk):
 
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=8)
-        self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=3)
         self.timer.start()
