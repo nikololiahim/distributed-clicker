@@ -43,12 +43,11 @@ class Publisher:
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='game', exchange_type='fanout')
 
-    @handled
+
     def publish(self, message):
         self.channel.basic_publish(exchange='game', routing_key='', body=message)
         print(" [x] Sent %r" % message)
 
-    @handled
     def close(self):
         if self.connection.is_open:
             self.connection.close()
@@ -94,12 +93,10 @@ class Consumer(threading.Thread):
         self.channel.queue_bind(exchange='game', queue=self.queue_name)
         self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback, auto_ack=False)
 
-    @handled
     def close(self):
         if self.connection.is_open:
             self.connection.close()
 
-    @handled
     def run(self):
         self.channel.start_consuming()
 
@@ -123,6 +120,7 @@ class PlayerList(tk.Frame):
             button = tk.Button(
                 master=self.master,
                 text=text,
+                font="Helvetica 14 bold"
             )
             button.pack(fill=tk.BOTH)
             self.items.append(button)
@@ -249,7 +247,6 @@ class MainWindow(tk.Tk):
             self.login.destroy()
             self.game_layout()
 
-    @handled
     def register_player(self):
         global username
         global players
@@ -259,7 +256,6 @@ class MainWindow(tk.Tk):
         }
         self.publisher.publish(DELIMITER.join([NEW_PLAYER, username, json.dumps(data)]))
 
-    @handled
     def update_score(self):
         global username
         global players
@@ -272,7 +268,6 @@ class MainWindow(tk.Tk):
         }
         self.publisher.publish(DELIMITER.join([UPDATE_SCORE, username, json.dumps(data)]))
 
-    @handled
     def remove_player(self):
         global username
         global players
@@ -312,7 +307,8 @@ class MainWindow(tk.Tk):
         self.player_list_title = tk.Label(
             master=self,
             background="lightblue",
-            text="Players"
+            text="Players",
+            font="Helvetica 14 bold",
         )
         self.player_list_title.grid(row=0, column=0, sticky=tk.NSEW)
 
@@ -326,7 +322,8 @@ class MainWindow(tk.Tk):
         self.whose_turn = tk.Label(
             master=self,
             background="lightblue",
-            text=f"You are currently: {username}"
+            text=f"You are currently: {username}",
+            font="Helvetica 14 bold"
         )
         self.whose_turn.grid(row=0, column=1, sticky=tk.NSEW)
 
@@ -365,6 +362,7 @@ class MainWindow(tk.Tk):
             height=10,
             width=10,
             text="CLICK!",
+            font="Helvetica 40 bold",
             command=self.on_click
         )
         self.click.pack(fill=tk.BOTH, expand=True)
@@ -373,7 +371,6 @@ class MainWindow(tk.Tk):
         self.update_score()
         self.timer.reset()
 
-    @handled
     def mainloop(self, n=0):
         super(MainWindow, self).mainloop(n)
 
